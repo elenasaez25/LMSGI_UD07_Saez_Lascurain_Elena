@@ -1,1 +1,191 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+===========================================
+    FACTURA ELECTRÓNICA — WILLMANTECH S.L. 
+    Empresa: WillmanTech S.L.
+    Motor: QWeb (Odoo 16)
+    Archivo: invoice_ubl.xml               
+===========================================   
+-->
+
+<Invoice
+    xmlns="urn:oasis:names:specification:ubl:schema:xsd:Invoice-2"
+    xmlns:cac="urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2"
+    xmlns:cbc="urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2">
+
+    <!--
+         BLOQUE 1: IDENTIFICACIÓN DEL PERFIL Y DOCUMENTO
+         CustomizationID y ProfileID son obligatorios en PEPPOL.
+         Identifican la versión del estándar europeo aplicado.
+    -->
+    <cbc:CustomizationID>urn:cen.eu:en16931:2017#compliant#urn:fdc:peppol.eu:2017:poacc:billing:3.0</cbc:CustomizationID>
+    <cbc:ProfileID>urn:fdc:peppol.eu:2017:poacc:billing:01:1.0</cbc:ProfileID>
+
+    <!-- Número único de la factura en el sistema del emisor -->
+    <cbc:ID>FACT-2025-0042</cbc:ID>
+
+    <!-- Fecha en formato ISO 8601: AAAA-MM-DD -->
+    <cbc:IssueDate>2025-05-15</cbc:IssueDate>
+    <cbc:DueDate>2025-06-15</cbc:DueDate>
+
+    <!-- Código 380 = Factura comercial estándar según UN/EDIFACT -->
+    <cbc:InvoiceTypeCode>380</cbc:InvoiceTypeCode>
+
+    <!-- Divisa de la transacción (código ISO 4217) -->
+    <cbc:DocumentCurrencyCode>EUR</cbc:DocumentCurrencyCode>
+
+    <!-- Referencia al pedido de compra del cliente, si existe -->
+    <cbc:BuyerReference>PO-CLIENTE-2025-18</cbc:BuyerReference>
+
+    <!-- 
+         BLOQUE 2: DATOS DEL PROVEEDOR (quien emite la factura) 
+     -->
+    <cac:AccountingSupplierParty>
+        <cac:Party>
+            <cac:PartyIdentification>
+                <!-- Identificador PEPPOL del proveedor -->
+                <cbc:ID schemeID="0088">8412345678901</cbc:ID>
+            </cac:PartyIdentification>
+            <cac:PartyName>
+                <cbc:Name>WillmanTech S.L.</cbc:Name>
+            </cac:PartyName>
+            <cac:PostalAddress>
+                <cbc:StreetName>Calle Tecnología, 10</cbc:StreetName>
+                <cbc:CityName>Sevilla</cbc:CityName>
+                <cbc:PostalZone>41092</cbc:PostalZone>
+                <cac:Country>
+                    <cbc:IdentificationCode>ES</cbc:IdentificationCode>
+                </cac:Country>
+            </cac:PostalAddress>
+            <cac:PartyTaxScheme>
+                <!-- NIF-IVA del emisor: prefijo "ES" obligatorio en UBL -->
+                <cbc:CompanyID>ESB12345678</cbc:CompanyID>
+                <cac:TaxScheme>
+                    <cbc:ID>VAT</cbc:ID>
+                </cac:TaxScheme>
+            </cac:PartyTaxScheme>
+            <cac:Contact>
+                <cbc:ElectronicMail>facturacion@willmantech.es</cbc:ElectronicMail>
+                <cbc:Telephone>+34 954 000 000</cbc:Telephone>
+            </cac:Contact>
+        </cac:Party>
+    </cac:AccountingSupplierParty>
+
+    <!-- ─────────────────────────────────────────────────────────
+         BLOQUE 3 · DATOS DEL CLIENTE (quien recibe la factura)
+    ───────────────────────────────────────────────────────────── -->
+    <cac:AccountingCustomerParty>
+        <cac:Party>
+            <cac:PartyName>
+                <cbc:Name>Empresa Cliente S.A.</cbc:Name>
+            </cac:PartyName>
+            <cac:PostalAddress>
+                <cbc:StreetName>Avenida Principal, 25</cbc:StreetName>
+                <cbc:CityName>Madrid</cbc:CityName>
+                <cbc:PostalZone>28001</cbc:PostalZone>
+                <cac:Country>
+                    <cbc:IdentificationCode>ES</cbc:IdentificationCode>
+                </cac:Country>
+            </cac:PostalAddress>
+            <cac:PartyTaxScheme>
+                <cbc:CompanyID>ESA98765432</cbc:CompanyID>
+                <cac:TaxScheme>
+                    <cbc:ID>VAT</cbc:ID>
+                </cac:TaxScheme>
+            </cac:PartyTaxScheme>
+        </cac:Party>
+    </cac:AccountingCustomerParty>
+
+    <!-- 
+         BLOQUE 4: CONDICIONES DE PAGO
+    -->
+    <cac:PaymentTerms>
+        <cbc:Note>Transferencia bancaria a 30 días desde la fecha de emisión</cbc:Note>
+    </cac:PaymentTerms>
+
+    <cac:PaymentMeans>
+        <!-- Código 30 = transferencia bancaria (UN/ECE 4461) -->
+        <cbc:PaymentMeansCode>30</cbc:PaymentMeansCode>
+        <cac:PayeeFinancialAccount>
+            <cbc:ID>ES76 2100 0813 6101 2345 6789</cbc:ID>
+        </cac:PayeeFinancialAccount>
+    </cac:PaymentMeans>
+
+    <!--
+         BLOQUE 5 · DESGLOSE DE IMPUESTOS
+         Categoría S = IVA estándar (Standard rate)
+    -->
+    <cac:TaxTotal>
+        <cbc:TaxAmount currencyID="EUR">210.00</cbc:TaxAmount>
+        <cac:TaxSubtotal>
+            <cbc:TaxableAmount currencyID="EUR">1000.00</cbc:TaxableAmount>
+            <cbc:TaxAmount currencyID="EUR">210.00</cbc:TaxAmount>
+            <cac:TaxCategory>
+                <cbc:ID>S</cbc:ID>
+                <cbc:Percent>21</cbc:Percent>
+                <cac:TaxScheme>
+                    <cbc:ID>VAT</cbc:ID>
+                </cac:TaxScheme>
+            </cac:TaxCategory>
+        </cac:TaxSubtotal>
+    </cac:TaxTotal>
+
+    <!--
+         BLOQUE 6: TOTALES MONETARIOS DE LA FACTURA
+    -->
+    <cac:LegalMonetaryTotal>
+        <!-- Suma de todos los importes de línea sin impuestos -->
+        <cbc:LineExtensionAmount currencyID="EUR">1000.00</cbc:LineExtensionAmount>
+        <!-- Base imponible total (antes de IVA) -->
+        <cbc:TaxExclusiveAmount currencyID="EUR">1000.00</cbc:TaxExclusiveAmount>
+        <!-- Total con IVA incluido -->
+        <cbc:TaxInclusiveAmount currencyID="EUR">1210.00</cbc:TaxInclusiveAmount>
+        <!-- Importe final a abonar -->
+        <cbc:PayableAmount currencyID="EUR">1210.00</cbc:PayableAmount>
+    </cac:LegalMonetaryTotal>
+
+    <!--
+         BLOQUE 7: LÍNEAS DE DETALLE DE LA FACTURA
+    -->
+
+    <!-- Línea 1: Servicio de desarrollo -->
+    <cac:InvoiceLine>
+        <cbc:ID>1</cbc:ID>
+        <cbc:InvoicedQuantity unitCode="HUR">20</cbc:InvoicedQuantity>
+        <cbc:LineExtensionAmount currencyID="EUR">600.00</cbc:LineExtensionAmount>
+        <cac:Item>
+            <cbc:Description>Desarrollo de módulo personalizado para ERP: pantallas, lógica de negocio y pruebas</cbc:Description>
+            <cbc:Name>Desarrollo Web a medida</cbc:Name>
+            <cac:ClassifiedTaxCategory>
+                <cbc:ID>S</cbc:ID>
+                <cbc:Percent>21</cbc:Percent>
+                <cac:TaxScheme><cbc:ID>VAT</cbc:ID></cac:TaxScheme>
+            </cac:ClassifiedTaxCategory>
+        </cac:Item>
+        <cac:Price>
+            <!-- Precio por unidad de medida-->
+            <cbc:PriceAmount currencyID="EUR">30.00</cbc:PriceAmount>
+        </cac:Price>
+    </cac:InvoiceLine>
+
+    <!-- Línea 2: Implantación del ERP -->
+    <cac:InvoiceLine>
+        <cbc:ID>2</cbc:ID>
+        <cbc:InvoicedQuantity unitCode="EA">1</cbc:InvoicedQuantity>
+        <cbc:LineExtensionAmount currencyID="EUR">400.00</cbc:LineExtensionAmount>
+        <cac:Item>
+            <cbc:Description>Puesta en marcha, migración de datos y formación al equipo sobre el nuevo entorno ERP</cbc:Description>
+            <cbc:Name>Implantación y configuración ERP</cbc:Name>
+            <cac:ClassifiedTaxCategory>
+                <cbc:ID>S</cbc:ID>
+                <cbc:Percent>21</cbc:Percent>
+                <cac:TaxScheme><cbc:ID>VAT</cbc:ID></cac:TaxScheme>
+            </cac:ClassifiedTaxCategory>
+        </cac:Item>
+        <cac:Price>
+            <cbc:PriceAmount currencyID="EUR">400.00</cbc:PriceAmount>
+        </cac:Price>
+    </cac:InvoiceLine>
+
+</Invoice>
 
