@@ -1,1 +1,304 @@
-
+<t t-name="account.report_invoice_document">
+    <!-- Plantilla principal del documento de factura (PDF o HTML) -->
+    
+    <t t-call="web.external_layout">
+        <!-- Incluye la plantilla de layout externo (cabecera, pie, márgenes, etc.) -->
+        
+        <t t-set="o" t-value="o.with_context(lang=lang)"/>
+        <!-- Establece el idioma del documento según el contexto -->
+        
+        <t t-set="forced_vat" t-value="o.fiscal_position_id.foreign_vat"/>
+        <!-- Guarda el VAT extranjero para mostrarlo en pie en lugar del VAT de la empresa -->
+        
+        <div class="row">
+            <!-- Bloque de direcciones (facturación y envío) -->
+            
+            <t t-if="o.partner_shipping_id and (o.partner_shipping_id != o.partner_id)">
+                <!-- CASO 1: Existe dirección de envío Y es DIFERENTE a la de facturación -->
+                <div class="col-6">
+                    <t t-set="information_block">
+                        <div groups="account.group_delivery_invoice_address" name="shipping_address_block">
+                            <strong class="d-block mt-3">Dirección de envío</strong>
+                            <div t-field="o.partner_shipping_id" t-options="{&quot;widget&quot;: &quot;contact&quot;, &quot;fields&quot;: [&quot;address&quot;, &quot;name&quot;], &quot;no_marker&quot;: True}"/>
+                        </div>
+                    </t>
+                </div>
+                <div class="col-6" name="address_not_same_as_shipping">
+                    <t t-set="address">
+                        <!-- Muestra dirección de facturación + VAT + ICE (si es Marruecos) -->
+                        <address class="mb-0" t-field="o.partner_id" t-options="{'widget': 'contact', 'fields': ['address', 'name'], 'no_marker': True}"/>
+                        <div t-if="o.partner_id.vat" id="partner_vat_address_not_same_as_shipping">
+                            <t t-if="o.company_id.account_fiscal_country_id.vat_label">
+                                <t t-out="o.company_id.account_fiscal_country_id.vat_label"/>
+                            </t>
+                            <t t-else="">Tax ID</t>: <span t-field="o.partner_id.vat"/>
+                        </div>
+                        <div t-if="o.partner_id.country_code == 'MA' and o.partner_id.company_registry">
+                            ICE: <span t-field="o.partner_id.company_registry"/>
+                        </div>
+                    </t>
+                    
+                    <t t-elif="o.partner_shipping_id and (o.partner_shipping_id == o.partner_id)">
+                        <!-- CASO 2: Existe dirección de envío pero es IGUAL a facturación -->
+                        <div class="offset-col-6 col-6" name="address_same_as_shipping">
+                            <t t-set="address">
+                                <!-- Misma dirección de facturación (no repite la de envío) -->
+                                ...
+                            </t>
+                        </div>
+                    </t>
+                    
+                    <t t-else="">
+                        <!-- CASO 3: No hay dirección de envío definida -->
+                        <div class="offset-col-6 col-6" name="no_shipping">
+                            <t t-set="address">
+                                <!-- Solo muestra dirección de facturación -->
+                                ...
+                            </t>
+                        </div>
+                    </t>
+                </div>
+                
+                <div class="clearfix invoice_main">
+                    <div class="page mb-4">
+                        
+                        <t t-set="layout_document_title">
+                            <!-- LÓGICA PARA DEFINIR EL TÍTULO DEL DOCUMENTO según tipo y estado -->
+                            
+                            <t t-if="not proforma">
+                                <!-- DOCUMENTOS NO PROFORMA (reales) -->
+                                
+                                <!-- Factura de cliente confirmada -->
+                                <span t-if="o.move_type == 'out_invoice' and o.state == 'posted'">
+                                    <t name="invoice_title">Factura</t>
+                                </span>
+                                
+                                <!-- Factura de cliente en borrador -->
+                                <span t-elif="o.move_type == 'out_invoice' and o.state == 'draft'">
+                                    <t name="draft_invoice_title">Borrador de factura</t>
+                                </span>
+                                
+                                <!-- Factura de cliente cancelada -->
+                                <span t-elif="o.move_type == 'out_invoice' and o.state == 'cancel'">
+                                    <t name="cancelled_invoice_title">Factura cancelada</t>
+                                </span>
+                                
+                                <!-- Nota de crédito (devolución a cliente) confirmada -->
+                                <span t-elif="o.move_type == 'out_refund' and o.state == 'posted'">
+                                    <t name="credit_note_title">Nota de crédito</t>
+                                </span>
+                                
+                                <!-- Nota de crédito en borrador -->
+                                <span t-elif="o.move_type == 'out_refund' and o.state == 'draft'">
+                                    <t name="draft_credit_note_title">Borrador de nota de crédito</t>
+                                </span>
+                                
+                                <!-- Nota de crédito cancelada -->
+                                <span t-elif="o.move_type == 'out_refund' and o.state == 'cancel'">
+                                    <t name="cancelled_credit_note_title">Nota de crédito cancelada</t>
+                                </span>
+                                
+                                <!-- Devolución a proveedor (factura de compra) - caso normal -->
+                                <span t-elif="o.move_type == 'in_refund' and not o.journal_id.is_self_billing">
+                                    <t name="vendor_credit_note_title">Nota de crédito del proveedor</t>
+                                </span>
+                                
+                                <!-- Devolución a proveedor con autofacturación -->
+                                <span t-elif="o.move_type == 'in_refund' and o.journal_id.is_self_billing">
+                                    <t name="self_billing_credit_note_title">Nota de crédito de autofacturación</t>
+                                </span>
+                                
+                                <!-- Factura de proveedor - caso normal -->
+                                <span t-elif="o.move_type == 'in_invoice' and not o.journal_id.is_self_billing">
+                                    <t name="vendor_bill_title">Factura del proveedor</t>
+                                </span>
+                                
+                                <!-- Factura de proveedor con autofacturación -->
+                                <span t-elif="o.move_type == 'in_invoice' and o.journal_id.is_self_billing">
+                                    <t name="self_billing_invoice_title">Autofacturación</t>
+                                </span>
+                                
+                            </t>
+                            
+                            <t t-else="">
+                                <!-- DOCUMENTOS PROFORMA (informativos, sin validez fiscal) -->
+                                <!-- Se muestran igualmente según tipo y estado, pero con "proforma" en el título -->
+                                ...
+                            </t>
+                            
+                            <!-- Número de documento (ej: INV/2025/0042) -->
+                            <span t-if="o.name and o.name != '/'" t-field="o.name">INV/2023/0001</span>
+                        </t>
+                        
+                        <div class="oe_structure"/>
+                        
+                        <!-- BLOQUE DE INFORMACIÓN ADICIONAL (fechas, referencias, incoterms, etc.) -->
+                        <div id="informations" class="row mb-4" t-if="o.invoice_date or ...">
+                            <div class="col" t-if="o.invoice_date" name="invoice_date">
+                                <strong>Fecha factura</strong>
+                                <div t-field="o.invoice_date">2023-09-12</div>
+                            </div>
+                            <div class="col" t-if="o.invoice_date_due and o.move_type == 'out_invoice' and o.state == 'posted'" name="due_date">
+                                <strong>Fecha vencimiento</strong>
+                                <div t-field="o.invoice_date_due">2023-10-31</div>
+                            </div>
+                            <!-- Más campos: fecha entrega, origen, código cliente, referencia, incoterm -->
+                        </div>
+                        
+                        <!-- DETECCIÓN SI HAY DESCUENTOS O IMPUESTOS para mostrar columnas -->
+                        <t t-set="display_discount" t-value="any(l.discount for l in o.invoice_line_ids)"/>
+                        <t t-set="display_taxes" t-value="any(l.tax_ids for l in o.invoice_line_ids)"/>
+                        
+                        <div class="oe_structure"/>
+                        
+                        <t t-set="has_long_desc" t-value="any(line.name and line.name.count('\n') &gt; 30 for line in o.invoice_line_ids if line.name)"/>
+                        
+                        <!-- TABLA DE LÍNEAS DE FACTURA -->
+                        <table class="o_has_total_table table o_main_table table-borderless mb-0" name="invoice_line_table">
+                            <thead>
+                                <tr>
+                                    <th>Descripción</th>
+                                    <th class="text-end">Cantidad</th>
+                                    <th class="text-end">Precio unitario</th>
+                                    <th t-if="display_discount" class="text-end">Dto.%</th>
+                                    <th t-if="display_taxes" class="text-end">Impuestos</th>
+                                    <th class="text-end">Importe</th>
+                                </tr>
+                            </thead>
+                            <tbody class="invoice_tbody">
+                                <!-- Recorre cada línea de la factura (líneas normales, secciones, notas) -->
+                                <t t-foreach="lines_to_report" t-as="line">
+                                    
+                                    <!-- Tipos de línea -->
+                                    <t t-set="is_note" t-value="line.display_type == 'line_note'"/>
+                                    <t t-set="is_section" t-value="line.display_type == 'line_section'"/>
+                                    <t t-set="is_subsection" t-value="line.display_type == 'line_subsection'"/>
+                                    <t t-set="is_product" t-value="line.display_type == 'product'"/>
+                                    
+                                    <!-- Si es sección, actualiza la sección actual -->
+                                    <t t-if="is_section">
+                                        <t t-set="current_section" t-value="line"/>
+                                        <t t-set="current_subsection" t-value="None"/>
+                                    </t>
+                                    
+                                    <!-- Si es subsección -->
+                                    <t t-elif="is_subsection">
+                                        <t t-set="current_subsection" t-value="line"/>
+                                    </t>
+                                    
+                                    <!-- Renderizado de línea de producto -->
+                                    <t t-if="not hide_details and not hide_prices">
+                                        <tr>
+                                            <t t-if="is_product">
+                                                <!-- Nombre del producto -->
+                                                <td><span t-field="line.name">Producto</span></td>
+                                                <!-- Cantidad + unidad -->
+                                                <td class="text-end">
+                                                    <span t-field="line.quantity">3.00</span>
+                                                    <span t-field="line.product_uom_id">unidades</span>
+                                                </td>
+                                                <!-- Precio unitario -->
+                                                <td class="text-end"><span t-field="line.price_unit">9.00</span></td>
+                                                <!-- Descuento (si aplica) -->
+                                                <td t-if="display_discount" class="text-end">
+                                                    <span t-field="line.discount">0</span>
+                                                </td>
+                                                <!-- Impuestos (si aplica) -->
+                                                <td t-if="display_taxes" class="text-end">
+                                                    <span t-out="taxes">IVA 15%</span>
+                                                </td>
+                                                <!-- Subtotal -->
+                                                <td class="text-end">
+                                                    <span t-if="o.company_price_include == 'tax_excluded'" t-field="line.price_subtotal">27.00</span>
+                                                    <span t-if="o.company_price_include == 'tax_included'" t-field="line.price_total">31.05</span>
+                                                </td>
+                                            </t>
+                                            
+                                            <!-- Si es sección o subsección (título) -->
+                                            <t t-elif="line.display_type in ('line_section', 'line_subsection')">
+                                                <td colspan="..."><span t-field="line.name">Título sección</span></td>
+                                                <td class="text-end"><span t-out="section_subtotal"/></td>
+                                            </t>
+                                            
+                                            <!-- Si es nota -->
+                                            <t t-elif="is_note">
+                                                <td colspan="99"><span t-field="line.name">Nota explicativa</span></td>
+                                            </t>
+                                        </tr>
+                                    </t>
+                                </t>
+                            </tbody>
+                        </table>
+                        
+                        <!-- BLOQUE DE TOTALES Y PAGOS (lado derecho flotante) -->
+                        <div id="right-elements" class="...">
+                            <div id="total" class="clearfix row">
+                                <table class="o_total_table">
+                                    <!-- Resumen de impuestos -->
+                                    <t t-if="o.tax_totals" t-call="account.document_tax_totals"/>
+                                    
+                                    <!-- Pagos realizados (si se imprime) -->
+                                    <t t-if="print_with_payments">
+                                        <t t-foreach="payments_vals" t-as="payment_vals">
+                                            <tr>
+                                                <td>Pagado el <t t-out="payment_vals['date']"/></td>
+                                                <td class="text-end"><span t-out="payment_vals['amount']"/></td>
+                                            </tr>
+                                        </t>
+                                        <!-- Saldo pendiente -->
+                                        <tr class="fw-bold">
+                                            <td>Importe pendiente</td>
+                                            <td class="text-end"><span t-field="o.amount_residual"/></td>
+                                        </tr>
+                                    </t>
+                                </table>
+                            </div>
+                            
+                            <!-- Total en letras -->
+                            <p t-if="o.company_id.display_invoice_amount_total_words">
+                                Total en letras: <br/>
+                                <small><span t-field="o.amount_total_words">Treinta y un dólares con cinco centavos</span></small>
+                            </p>
+                        </div>
+                        
+                        <!-- BLOQUE DE PIE: condiciones de pago, términos, código QR, notas legales -->
+                        <div id="payment_term" class="clearfix mt-3">
+                            <!-- Nota de posición fiscal -->
+                            <p t-if="not is_html_empty(o.fiscal_position_id.note)" t-field="o.fiscal_position_id.note"/>
+                            
+                            <!-- Notas legales de impuestos -->
+                            <p t-if="not is_html_empty(o.taxes_legal_notes)" t-field="o.taxes_legal_notes"/>
+                            
+                            <!-- Término de pago (ej: "Pago a 30 días") -->
+                            <span id="payment_terms_note_id" t-if="o.invoice_payment_term_id.note" t-field="o.invoice_payment_term_id.note"/>
+                            
+                            <!-- Detalle de plazos (si aplica) -->
+                            <div t-if="o.show_payment_term_details and len(payment_term_details) > 1">
+                                <t t-foreach="payment_term_details" t-as="term">
+                                    <div>Cuota <t t-out="term_index + 1"/>: <t t-out="term.get('amount')"/> vence el <t t-out="term.get('date')"/></div>
+                                </t>
+                            </div>
+                            
+                            <!-- Código QR para pago bancario (estándar) -->
+                            <div id="qrcode" class="d-flex mb-3" t-if="o.display_qr_code and o.amount_residual">
+                                <img t-att-src="qr_code_url"/>
+                                <div>Escanea este código QR con tu app bancaria</div>
+                            </div>
+                            
+                            <!-- Código QR para pago online (portal) -->
+                            <div id="payment_link_qrcode" class="d-flex mb-3" t-if="o.display_link_qr_code and o.amount_residual">
+                                <img t-att-src="portal_qr_code"/>
+                                <div><strong>PAGA RÁPIDO</strong><br/>Escanea o haz clic para pagar online</div>
+                            </div>
+                            
+                            <!-- Comentarios / términos y condiciones -->
+                            <div class="text-muted mb-3" t-if="not is_html_empty(o.narration)">
+                                <span t-field="o.narration"/>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </t>
+        </div>
+    </t>
+</t>
