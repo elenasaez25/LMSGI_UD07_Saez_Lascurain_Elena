@@ -1,5 +1,5 @@
 # Manual Técnico de Explotación
-## Sistema ERP/CRM — WillmanTech S.L.
+## Sistema ERP/CRM : WillmanTech S.L.
 
 > **Alumno:** Elena Sáez
 > **Fecha:** 22/05/2026
@@ -21,7 +21,17 @@
 
 ### 1.1 Propósito del documento
 
-Este manual recoge los procedimientos técnicos necesarios para operar, mantener y recuperar el sistema ERP de WillmanTech S.L. Está dirigido a dos perfiles: **administradores de sistemas**, responsables del despliegue y mantenimiento de la infraestructura, y **usuarios avanzados**, que gestionan los procesos de negocio dentro de la aplicación.
+Este manual recoge lo necesario para administrar y ajustar el ERP de "WillmanTech S.L", dirigido hacia los administradores de sistemas que se encargarán de mantener este ERP a través de este manual y para los usuarios finales que lleguen a explotarlo después de su mantenimiento.  
+
+Este proyecto contiene los 3 entregables propuestos por el docente:  
+1. `report_invoice_willmantech.xml`: Estructura XML de una plantilla de informe de factura personalizada para "WillmanTech S.L.", utilizando la sintaxis de **QWeb**
+   
+2. `invoice_ubl.xml`(dentro de la carpeta `interoperabilidad`): Fragmento de factura electrónica que cumple con las especificaciones UBL (Universal Business Language), incluyendo los namespaces de componentes agregados (cac) y componentes básicos (cbc), así como el ID de personalización europeo compatible con la red PEPPOL.
+   
+3. `manual_explotacion_willmantech.md (README.md)`: Este documento técnico que sirve deguía para los **administradores de sistemas** y **usuarios finales** que exploten el ERP de "WillmanTech S.L", siguiendo los requisitos de calidad y usabilidad del estándar internacional **ISO/IEC/IEEE 26514:2022**
+
+---
+
 
 ### 1.2 Descripción del entorno tecnológico
 
@@ -201,7 +211,7 @@ Acceso a CRM, presupuestos y pedidos de venta. Ve únicamente sus propios client
 2. Pulsar **Nuevo**
 3. Completar nombre completo y dirección de correo corporativa
 4. Asignar el perfil en la sección **Permisos de acceso**
-5. Guardar — el sistema enviará automáticamente un correo de activación
+5. Guardar : el sistema enviará automáticamente un correo de activación
 
 ### 3.3 Política de contraseñas obligatoria
 
@@ -235,14 +245,14 @@ Configuración en Odoo: **Ajustes → Permisos → Política de contraseñas**
 
 ### 4.2 Realizar un backup
 
-**Desde la interfaz web** *(recomendado para usuarios no técnicos)*
+**Desde la interfaz web**
 
 1. Navegar a `http://localhost:8069/web/database/manager`
 2. Pulsar **Backup** junto al nombre de la base de datos
-3. Seleccionar formato **zip** — incluye base de datos y todos los ficheros adjuntos
+3. Seleccionar formato **zip**, esto incluye base de datos y todos los ficheros adjuntos
 4. Guardar el archivo descargado en una ubicación segura
 
-**Desde la terminal** *(recomendado para automatización)*
+**Desde la terminal**
 
 ```bash
 # Exportar la base de datos a un fichero SQL comprimido
@@ -251,7 +261,7 @@ docker exec willmantech-db-1 \
     | gzip > backups/willmantech_$(date +%Y-%m-%d).sql.gz
 ```
 
-**Tarea programada — backup automático diario a las 02:00 h**
+**Tarea programada: backup automático diario a las 02:00 h**
 
 ```bash
 # Editar el crontab del usuario del servidor
@@ -292,30 +302,30 @@ docker exec willmantech-db-1 \
 
 ### 5.1 Crear y emitir una factura paso a paso
 
-**Paso 1 — Acceder al módulo**
+**Paso 1: Acceder al módulo**
 Desde el menú principal, ir a **Facturación → Clientes → Facturas** y pulsar **Nuevo**.
 
-**Paso 2 — Rellenar los datos principales**
+**Paso 2: Rellenar los datos principales**
 Seleccionar el cliente en el campo correspondiente. Odoo cargará automáticamente su dirección fiscal, condiciones de pago y datos bancarios si están configurados.
 
-**Paso 3 — Añadir líneas de detalle**
+**Paso 3: Añadir líneas de detalle**
 Pulsar **Añadir una línea** por cada producto o servicio facturado. Indicar descripción, cantidad y precio unitario. El IVA se aplicará automáticamente según el producto.
 
-**Paso 4 — Confirmar la factura**
+**Paso 4: Confirmar la factura**
 Al pulsar **Confirmar**, la factura pasa a estado *Publicada*: se le asigna un número de serie correlativo y queda registrada contablemente. Esta acción es irreversible; si hay un error, deberá emitirse una nota de crédito.
 
-**Paso 5 — Enviar al cliente**
+**Paso 5: Enviar al cliente**
 Pulsar **Enviar e imprimir** para enviar la factura por correo electrónico o descargarla directamente en PDF.
 
 ### 5.2 Generación del PDF
 
 Cuando el sistema genera el PDF de una factura, ejecuta internamente el siguiente proceso de tres etapas:  
 
-**Etapa 1 — Plantilla QWeb:** El fichero `report_invoice_willmantech.xml` define la maquetación de la factura. Contiene directivas como `t-foreach` (para iterar las líneas) y `t-if` (para ocultar columnas vacías).
+**Etapa 1: Plantilla QWeb:** El fichero `report_invoice_willmantech.xml` define la maquetación de la factura. Contiene directivas como `t-foreach` (para iterar las líneas) y `t-if` (para ocultar columnas vacías).
 
-**Etapa 2 — Generación del HTML:** El motor interno de Odoo procesa la plantilla, consulta la base de datos PostgreSQL y sustituye cada directiva `t-field` por el valor real del campo correspondiente (nombre del cliente, importes, fechas...). El resultado es un documento HTML completo.
+**Etapa 2: Generación del HTML:** El motor interno de Odoo procesa la plantilla, consulta la base de datos PostgreSQL y sustituye cada directiva `t-field` por el valor real del campo correspondiente (nombre del cliente, importes, fechas...). El resultado es un documento HTML completo.
 
-**Etapa 3 — Conversión a PDF con wkhtmltopdf:** La herramienta `wkhtmltopdf`, incluida en la imagen Docker de Odoo, recibe el HTML generado y lo renderiza como un PDF de calidad tipográfica listo para imprimir o enviar.
+**Etapa 3: Conversión a PDF con wkhtmltopdf:** La herramienta `wkhtmltopdf`, incluida en la imagen Docker de Odoo, recibe el HTML generado y lo renderiza como un PDF de calidad tipográfica listo para imprimir o enviar.
 
 ### 5.3 Exportar informes de ventas y análisis
 
@@ -374,7 +384,7 @@ La directiva **`t-foreach`** funciona como un bucle `for`. La expresión `t-fore
 
 En el estándar UBL 2.1, los namespaces `cac` y `cbc` son prefijos XML que organizan los elementos del documento en dos categorías según su complejidad.
 
-**`cbc` — CommonBasicComponents** agrupa los campos simples que contienen un único valor de texto, número o fecha. Son los elementos "hoja" del documento, aquellos que no contienen otros elementos dentro. Por ejemplo:
+**`cbc` : CommonBasicComponents** agrupa los campos simples que contienen un único valor de texto, número o fecha. Son los elementos "hoja" del documento, aquellos que no contienen otros elementos dentro. Por ejemplo:
 
 ```xml
 <cbc:ID>FACT-2025-0042</cbc:ID>
@@ -383,7 +393,7 @@ En el estándar UBL 2.1, los namespaces `cac` y `cbc` son prefijos XML que organ
 <cbc:TaxAmount currencyID="EUR">210.00</cbc:TaxAmount>
 ```
 
-**`cac` — CommonAggregateComponents** agrupa los bloques complejos que actúan como contenedores de otros elementos. Son estructuras compuestas que agrupan información relacionada. Por ejemplo, la dirección postal de una empresa no es un campo simple, sino un conjunto de campos que se agrupan bajo un elemento `cac`:
+**`cac` : CommonAggregateComponents** agrupa los bloques complejos que actúan como contenedores de otros elementos. Son estructuras compuestas que agrupan información relacionada. Por ejemplo, la dirección postal de una empresa no es un campo simple, sino un conjunto de campos que se agrupan bajo un elemento `cac`:
 
 ```xml
 <cac:PostalAddress>
@@ -447,19 +457,19 @@ En resumen: `CustomizationID` responde a la pregunta *¿con qué reglas está co
 
 Un fichero `invoice_ubl.xml` válido para PEPPOL debe organizarse en siete bloques principales, siempre en este orden:
 
-**Bloque 1 — Identificación del perfil y el documento.** Es la cabecera obligatoria. Debe incluir el `CustomizationID` con el identificador PEPPOL europeo, el `ProfileID` del proceso de facturación, el número único de la factura, la fecha de emisión, la fecha de vencimiento, el código del tipo de documento (380 para factura ordinaria) y la divisa utilizada.
+**Bloque 1 : Identificación del perfil y el documento.** Es la cabecera obligatoria. Debe incluir el `CustomizationID` con el identificador PEPPOL europeo, el `ProfileID` del proceso de facturación, el número único de la factura, la fecha de emisión, la fecha de vencimiento, el código del tipo de documento (380 para factura ordinaria) y la divisa utilizada.
 
-**Bloque 2 — Datos del emisor (proveedor).** Contiene toda la información de quien emite la factura: nombre legal de la empresa, dirección postal completa con país, número de identificación fiscal con prefijo del país, y opcionalmente datos de contacto como correo electrónico y teléfono.
+**Bloque 2 : Datos del emisor (proveedor).** Contiene toda la información de quien emite la factura: nombre legal de la empresa, dirección postal completa con país, número de identificación fiscal con prefijo del país, y opcionalmente datos de contacto como correo electrónico y teléfono.
 
-**Bloque 3 — Datos del receptor (cliente).** Misma estructura que el bloque anterior pero con la información de la empresa compradora que recibirá la factura.
+**Bloque 3 : Datos del receptor (cliente).** Misma estructura que el bloque anterior pero con la información de la empresa compradora que recibirá la factura.
 
-**Bloque 4 — Condiciones de pago.** Describe cómo y cuándo se debe realizar el pago: plazo acordado, medio de pago (transferencia, tarjeta...) y, si corresponde, el número de cuenta bancaria del beneficiario.
+**Bloque 4 : Condiciones de pago.** Describe cómo y cuándo se debe realizar el pago: plazo acordado, medio de pago (transferencia, tarjeta...) y, si corresponde, el número de cuenta bancaria del beneficiario.
 
-**Bloque 5 — Desglose de impuestos.** Especifica el importe total de impuestos aplicados, la base imponible sobre la que se calculan y el porcentaje de cada tipo impositivo. En España lo habitual es IVA al 21 %, 10 % o 4 % según el tipo de bien o servicio.
+**Bloque 5 : Desglose de impuestos.** Especifica el importe total de impuestos aplicados, la base imponible sobre la que se calculan y el porcentaje de cada tipo impositivo. En España lo habitual es IVA al 21 %, 10 % o 4 % según el tipo de bien o servicio.
 
-**Bloque 6 — Totales monetarios.** Resume los importes globales de la factura: suma de líneas sin impuestos, base imponible, total con IVA incluido y cantidad final a abonar.
+**Bloque 6 : Totales monetarios.** Resume los importes globales de la factura: suma de líneas sin impuestos, base imponible, total con IVA incluido y cantidad final a abonar.
 
-**Bloque 7 — Líneas de detalle.** Una entrada por cada producto o servicio facturado, con su número de línea, cantidad, unidad de medida, importe de línea, descripción completa del artículo y precio unitario.
+**Bloque 7 : Líneas de detalle.** Una entrada por cada producto o servicio facturado, con su número de línea, cantidad, unidad de medida, importe de línea, descripción completa del artículo y precio unitario.
 
 ---
 
