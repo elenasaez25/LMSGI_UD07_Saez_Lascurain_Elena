@@ -1,8 +1,9 @@
 # Manual Técnico de Explotación
-## Sistema ERP/CRM : WillmanTech S.L.
+## Sistema ERP/CRM: WillmanTech S.L.
 
-> **Alumno:** Elena Sáez
-> **Fecha:** 22/05/2026
+> **Alumno:** Elena Sáez  
+> **Fecha:** 21/05/2026  
+> **Módulo:** Lenguaje de Marcas
 
 ---
 
@@ -261,16 +262,6 @@ docker exec willmantech-db-1 \
     | gzip > backups/willmantech_$(date +%Y-%m-%d).sql.gz
 ```
 
-**Tarea programada: backup automático diario a las 02:00 h**
-
-```bash
-# Editar el crontab del usuario del servidor
-crontab -e
-
-# Añadir la siguiente entrada
-0 2 * * * docker exec willmantech-db-1 pg_dump -U odoo_user willmantech_db | gzip > /srv/backups/willmantech_$(date +\%Y-\%m-\%d).sql.gz
-```
-
 ### 4.3 Restaurar desde un backup
 
 **Desde la interfaz web**
@@ -493,4 +484,42 @@ El estándar ISO/IEC/IEEE 26514:2022 establece los requisitos que debe cumplir l
 
 ---
 
-*Este documento ha sido redactado conforme a los requisitos de contenido, estructura y usabilidad establecidos por el estándar **ISO/IEC/IEEE 26514:2022**
+### #6
+
+**Agente:** Claude
+
+**Prompt:**
+> Tengo una instalación de Odoo corriendo con Docker. El contenedor de la base de datos se llama `willmantech-db-1`, el usuario de PostgreSQL es `odoo_user` y la base de datos se llama `willmantech_db`. ¿Qué comandos exactos tengo que ejecutar para hacer un backup de la base de datos desde la terminal y cómo lo restauraría después?
+
+**Respuesta textual:**
+
+**Para hacer el backup**, ejecuta este comando desde la máquina anfitriona (fuera del contenedor):
+
+```bash
+docker exec willmantech-db-1 \
+    pg_dump -U odoo_user willmantech_db \
+    | gzip > backups/willmantech_$(date +%Y-%m-%d).sql.gz
+```
+
+Esto genera un fichero comprimido con la fecha del día en la carpeta `backups/`, por ejemplo `willmantech_2025-05-21.sql.gz`. Asegúrate de que esa carpeta existe antes de ejecutarlo (`mkdir -p backups`).
+
+---
+
+**Para restaurar el backup**, necesitas tres comandos en orden:
+
+```bash
+# 1. Copiar el fichero de backup al interior del contenedor
+docker cp backups/willmantech_2025-05-21.sql.gz willmantech-db-1:/tmp/
+
+# 2. Descomprimirlo dentro del contenedor
+docker exec willmantech-db-1 gunzip /tmp/willmantech_2025-05-21.sql.gz
+
+# 3. Importar el volcado en la base de datos
+docker exec willmantech-db-1 \
+    psql -U odoo_user -d willmantech_db \
+    -f /tmp/willmantech_2025-05-21.sql
+```
+
+Sustituye `willmantech_2025-05-21` por la fecha del backup que quieras restaurar.
+
+Este documento ha sido redactado conforme a los requisitos de contenido, estructura y usabilidad establecidos por el estándar **ISO/IEC/IEEE 26514:2022**
